@@ -1,0 +1,173 @@
+<!-- views/partials/sidebar.ejs -->
+<div class="w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white min-h-screen p-6 font-sans shadow-lg">
+  <h2 class="text-2xl font-extrabold mb-8 tracking-tight">Stock System - IN</h2>
+  <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+    <p class="text-sm text-gray-400 mb-4">Logged in as: <span class="font-semibold text-white"><%= currentUser %></span></p>
+  <% } %>
+  <ul class="space-y-4">
+
+    <li>
+      <a href="/" class="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105">
+        <span class="font-semibold text-left">DASHBOARD</span>
+      </a>
+    </li>
+
+    <!-- NEW IN -->
+    <li>
+      <button id="newInToggle"
+              class="w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 focus:outline-none"
+              aria-expanded="false"
+              aria-controls="newInMenu">
+        <span class="font-semibold text-left">NEW IN</span>
+        <svg id="arrowIcon" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <ul id="newInMenu" class="ml-4 mt-2 space-y-1 max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+        <li>
+          <a href="/incoming/new" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">IN</a>
+        </li>
+        <li>
+          <a href="/incoming/count" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">COUNT</a>
+        </li>
+      </ul>
+    </li>
+
+    <!-- WAYBILL -->
+    <li>
+      <button id="waybillToggle"
+              class="w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 focus:outline-none"
+              aria-expanded="false"
+              aria-controls="waybillMenu">
+        <span class="font-semibold text-left">WAYBILL MANAGEMENT</span>
+        <svg id="waybillArrow" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <ul id="waybillMenu" class="ml-4 mt-2 space-y-1 max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+        <li>
+          <a href="/waybills" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">OPEN</a>
+        </li>
+        <li>
+          <a href="/waybills/closed" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">CLOSED</a>
+        </li>
+      </ul>
+    </li>
+
+    <!-- PRODUCT LIST -->
+    <li>
+      <a href="/productlist" class="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105">
+        <span class="font-semibold text-left">PRODUCT LIST</span>
+      </a>
+    </li>
+
+    <!-- REPORT -->
+    <li>
+      <button id="reportToggle"
+              class="w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 focus:outline-none"
+              aria-expanded="false"
+              aria-controls="reportMenu">
+        <span class="font-semibold text-left">REPORT MANAGEMENT</span>
+        <svg id="reportArrow" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <ul id="reportMenu" class="ml-4 mt-2 space-y-1 max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+        <li>
+          <a href="/incoming/report" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">OPEN</a>
+        </li>
+        <li>
+          <a href="/incoming/report/closed" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">CLOSED</a>
+        </li>
+      </ul>
+    </li>
+
+    <!-- USER MANAGEMENT -->
+    <li>
+      <button id="userToggle"
+              class="w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 focus:outline-none"
+              aria-expanded="false"
+              aria-controls="userMenu">
+        <span class="font-semibold text-left">USER MANAGEMENT</span>
+        <svg id="userArrow" class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <ul id="userMenu" class="ml-4 mt-2 space-y-1 max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+        <li>
+          <a href="/User/add" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">ADD USER</a>
+        </li>
+        <li>
+          <a href="/User/list" class="block py-1 px-3 rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105 text-left">USER LIST</a>
+        </li>
+      </ul>
+    </li>
+    
+    <!-- Logout -->
+    <li>
+      <a href="/logout" class="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-red-700 transition-all duration-300 transform hover:translate-x-1 hover:scale-105">
+        <span class="font-semibold text-left">LOGOUT</span>
+      </a>
+    </li>
+  </ul>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    function setupToggle(buttonId, menuId, arrowId, allMenus) {
+      const btn = document.getElementById(buttonId);
+      const menu = document.getElementById(menuId);
+      const arrow = document.getElementById(arrowId);
+      if (!btn || !menu || !arrow) return;
+
+      menu.style.maxHeight = '0px';
+
+      btn.addEventListener('click', () => {
+        const isOpen = menu.style.maxHeight !== '0px';
+
+        // Close all menus first
+        allMenus.forEach(({menuEl, arrowEl, btnEl}) => {
+          menuEl.style.maxHeight = '0px';
+          arrowEl.classList.remove('rotate-180');
+          btnEl.setAttribute('aria-expanded', false);
+        });
+
+        // Toggle current
+        if (!isOpen) {
+          menu.style.maxHeight = menu.scrollHeight + 'px';
+          arrow.classList.add('rotate-180');
+          btn.setAttribute('aria-expanded', true);
+        }
+      });
+    }
+
+    // Collect menus
+    const menus = [
+      {
+        btnEl: document.getElementById('newInToggle'),
+        menuEl: document.getElementById('newInMenu'),
+        arrowEl: document.getElementById('arrowIcon')
+      },
+      {
+        btnEl: document.getElementById('waybillToggle'),
+        menuEl: document.getElementById('waybillMenu'),
+        arrowEl: document.getElementById('waybillArrow')
+      },
+      {
+        btnEl: document.getElementById('reportToggle'),
+        menuEl: document.getElementById('reportMenu'),
+        arrowEl: document.getElementById('reportArrow')
+      },
+      {
+        btnEl: document.getElementById('userToggle'),
+        menuEl: document.getElementById('userMenu'),
+        arrowEl: document.getElementById('userArrow')
+      }
+    ];
+
+    // Initialize toggles
+    menus.forEach(({btnEl, menuEl, arrowEl}) => {
+      setupToggle(btnEl.id, menuEl.id, arrowEl.id, menus);
+    });
+  });
+</script>

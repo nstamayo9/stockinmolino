@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incoming Report | Stock System</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+</head>
+<body class="flex bg-gray-100">
+
+  <!-- Sidebar -->
+  <%- include('partials/sidebar') %>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6">
+    <h1 class="text-3xl font-bold mb-6">📄 Incoming Report</h1>
+
+    <% const openWaybills = waybills.filter(wb => wb.status === "OPEN"); %>
+
+    <% if (openWaybills.length === 0) { %>
+      <p class="text-gray-600">No active incoming waybills found.</p>
+    <% } else { %>
+      <div class="space-y-6">
+        <% openWaybills.forEach(wb => { %>
+          <div class="bg-white shadow rounded-lg p-4">
+            <!-- Waybill Header -->
+            <div class="mb-2 font-semibold text-lg">
+              <%= wb.waybillNo %> | <%= wb.count %> <%= wb.uom %> | <%= dayjs(wb.date).format('MMMM DD, YYYY') %>
+            </div>
+
+            <!-- Product Table -->
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-gray-200">
+                  <th class="p-2 border">Product Name</th>
+                  <th class="p-2 border">Incoming Count</th>
+                  <th class="p-2 border">Actual Count</th>
+                  <th class="p-2 border">Discrepancy</th>
+                  <th class="p-2 border">Remarks Actual Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% wb.items.forEach(item => { 
+                     const discrepancy = (item.actualCount || 0) - item.incoming;
+                %>
+                  <tr>
+                    <td class="p-2 border"><%= item.productName %></td>
+                    <td class="p-2 border"><%= item.incoming %> <%= item.uomIncoming %></td>
+                    <td class="p-2 border"><%= item.actualCount || 0 %> <%= item.uomIncoming %></td>
+                    <td class="p-2 border font-semibold
+                        <%= discrepancy > 0 ? 'text-green-600' : discrepancy < 0 ? 'text-red-600' : 'text-gray-600' %>">
+                      <% if (discrepancy === 0) { %>
+                        ✔
+                      <% } else if (discrepancy < 0) { %>
+                        ⚠️ Shortage: <%= Math.abs(discrepancy) %>
+                      <% } else { %>
+                        ⚠️ Over: <%= discrepancy %>
+                      <% } %>
+                    </td>
+                    <td class="p-2 border text-gray-700">
+                      <%= item.remarkActual && item.remarkActual.trim() !== "" ? item.remarkActual : "-" %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+  </main>
+
+</body>
+</html>

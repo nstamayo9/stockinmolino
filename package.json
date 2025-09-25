@@ -1,0 +1,42 @@
+{
+  "name": "stockinmolino",
+  "version": "1.0.0",
+  "description": "Inventory and stock management system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "inventory",
+    "stock",
+    "management",
+    "express",
+    "mongoose"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "connect-mongo": "^5.1.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.18",
+    "dotenv": "^17.2.2",
+    "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "html-pdf": "^1.5.0",
+    "mongoose": "^8.6.0",
+    "pdfkit": "^0.17.2",
+    "puppeteer": "^24.22.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "overrides": {
+    "vulnerable-package-name": "patched-version"
+  }
+}

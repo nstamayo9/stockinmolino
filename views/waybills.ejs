@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Waybills | Stock System</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="flex bg-gray-100 min-h-screen">
+  <%- include('partials/sidebar') %>
+
+  <main class="flex-1 p-6">
+    <h1 class="text-3xl font-bold mb-6">📦 Active Waybills</h1>
+
+    <div class="overflow-x-auto bg-white shadow rounded-lg">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waybill No</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UOM</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% if (waybills && waybills.length > 0) { %>
+            <% waybills.forEach(wb => { %>
+              <tr>
+                <td class="px-4 py-2 whitespace-nowrap"><%= wb.waybillNo %></td>
+                <td class="px-4 py-2 whitespace-nowrap"><%= wb.count %></td>
+                <td class="px-4 py-2 whitespace-nowrap"><%= wb.uom %></td>
+                <td class="px-4 py-2 whitespace-nowrap"><%= wb.items.length %></td>
+                <td class="px-4 py-2 whitespace-nowrap"><%= wb.date ? new Date(wb.date).toLocaleString() : new Date(wb.createdAt).toLocaleString() %></td>
+                <td class="px-4 py-2 whitespace-nowrap space-x-2">
+                  <a href="/waybills/edit/<%= wb._id %>" class="text-blue-500 hover:underline">Edit</a>
+                  <form action="/waybills/delete/<%= wb._id %>" method="POST" class="inline">
+                    <button type="submit" onclick="return confirm('Are you sure you want to delete waybill <%- wb.waybillNo %>?')" class="text-red-500 hover:underline ml-2">Delete</button>
+                  </form>
+                  <form action="/waybills/close/<%= wb._id %>" method="POST" class="inline">
+                    <button type="submit" onclick="return confirm('Close waybill <%- wb.waybillNo %>?')" class="text-yellow-600 hover:underline ml-2">Close</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="6" class="text-center py-4 text-gray-500">No active waybills found.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-6">
+      <a href="/waybills/closed" class="text-sm text-gray-600 hover:underline">📜 View Closed Waybills</a>
+    </div>
+  </main>
+</body>
+</html>

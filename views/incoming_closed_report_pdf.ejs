@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Closed Incoming Report PDF | Stock System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      font-size: 12px;
+      color: #333;
+    }
+    h1 {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    .dates {
+      margin-bottom: 20px;
+      font-weight: bold;
+      text-align: left;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #666;
+      padding: 6px;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+    .discrepancy-green {
+      color: green;
+      font-weight: bold;
+    }
+    .discrepancy-red {
+      color: red;
+      font-weight: bold;
+    }
+    .discrepancy-gray {
+      color: gray;
+      font-weight: bold;
+    }
+    .waybill-block {
+      margin-bottom: 30px;
+    }
+    .waybill-header {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Closed Incoming Report</h1>
+
+  <div class="dates">
+    From: <%= from && from !== '' ? dayjs(from).format('MMMM DD, YYYY') : 'N/A' %> |
+    To: <%= to && to !== '' ? dayjs(to).format('MMMM DD, YYYY') : 'N/A' %>
+  </div>
+
+  <% if (!waybills || waybills.length === 0) { %>
+    <p>No closed waybills found for the selected date range.</p>
+  <% } else { %>
+    <% waybills.forEach(wb => { %>
+      <div class="waybill-block">
+        <div class="waybill-header">
+          <%= wb.waybillNo %> | <%= wb.count %> <%= wb.uom %> | 
+          <%= wb.closedAt ? dayjs(wb.closedAt).format('MMMM DD, YYYY') : '-' %>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>Incoming Count</th>
+              <th>Actual Count</th>
+              <th>Discrepancy</th>
+              <th>Remarks Actual Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% wb.items.forEach(item => {
+                 const discrepancy = (item.actualCount || 0) - item.incoming;
+                 let discClass = 'discrepancy-gray';
+                 if (discrepancy > 0) discClass = 'discrepancy-green';
+                 else if (discrepancy < 0) discClass = 'discrepancy-red';
+            %>
+              <tr>
+                <td><%= item.productName %></td>
+                <td><%= item.incoming %> <%= item.uomIncoming %></td>
+                <td><%= item.actualCount || 0 %> <%= item.uomIncoming %></td>
+                <td class="<%= discClass %>">
+                  <% if (discrepancy === 0) { %>
+                    ✔
+                  <% } else if (discrepancy < 0) { %>
+                    ⚠️ Shortage: <%= Math.abs(discrepancy) %>
+                  <% } else { %>
+                    ⚠️ Over: <%= discrepancy %>
+                  <% } %>
+                </td>
+                <td><%= item.remarkActual && item.remarkActual.trim() !== "" ? item.remarkActual : "-" %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% }) %>
+  <% } %>
+</body>
+</html>
