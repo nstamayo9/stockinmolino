@@ -72,13 +72,13 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 const stockMolinoConn = mongoose.createConnection(process.env.MONGO_URI, {
-  dbName: "stockinmolino",
+  dbName: "stockdb",
 });
 stockMolinoConn.once("open", () =>
-  console.log("✅ MongoDB connected to stockinmolino")
+  console.log("✅ MongoDB connected to stockdb")
 );
 stockMolinoConn.on("error", (err) =>
-  console.error("MongoDB stockinmolino connection error:", err)
+  console.error("MongoDB stockdb connection error:", err)
 );
 
 // ----------------- SCHEMAS / MODELS -----------------
