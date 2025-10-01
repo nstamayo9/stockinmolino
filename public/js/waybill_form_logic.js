@@ -121,6 +121,11 @@ function createItemRow(waybillIdx, itemIdx, itemData = {}) {
              class="w-full p-2 border rounded h-10">
     </td>
     <!-- END ADDED -->
+    <td class="border px-2 py-1">
+      <input type="number" name="waybills[${waybillIdx}][items][${itemIdx}][conversionFactor]"
+             value="${escapeHtmlAttribute(itemData.conversionFactor !== undefined ? itemData.conversionFactor : 1)}"
+             class="w-full p-2 border rounded h-10" min="1" required>
+    </td>
     <td class="border px-2 py-1 text-center">
       <button type="button" class="text-red-500 hover:underline remove-item-btn">Remove</button>
     </td>
@@ -251,6 +256,7 @@ function createWaybillBlock(data = {}, isEditMode = false) {
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UOM</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Count</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remark</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conv. Factor</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
             </thead>
@@ -358,12 +364,10 @@ window.initializeWaybillForm = async (initialWaybillData = null, isEditMode = fa
   if (isEditMode && initialWaybillData && Object.keys(initialWaybillData).length > 0) {
     createWaybillBlock(initialWaybillData, true);
   } else {
-    // If not in edit mode or no initial data, always create at least one fresh waybill block
-    if (waybillsContainer.children.length === 0) { // Only create if no waybill exists
+    if (waybillsContainer.children.length === 0) {
         createWaybillBlock({}, false);
     }
   }
-  // Ensure the save button state is correct after initialization
   window.toggleSaveButton();
 };
 
@@ -372,40 +376,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   const saveBtn = document.getElementById('saveWaybills');
   const addWaybillBtn = document.getElementById('addWaybill');
 
-  // Function to enable/disable Save button based on waybill cards
-  window.toggleSaveButton = () => { // Make global for access from remove event listener
+  window.toggleSaveButton = () => {
     saveBtn.disabled = waybillsContainer.children.length === 0;
   };
 
-  // Initial check on load, then initialize first waybill form
-  // Call initializeWaybillForm first, it handles creating the initial block
-  await window.initializeWaybillForm(null, false); // Pass isEditMode=false here for default new form behavior
+  await window.initializeWaybillForm(null, false);
 
-  // Add event listener for "Add Another Waybill" button
   if (addWaybillBtn) {
     addWaybillBtn.addEventListener("click", () => {
         createWaybillBlock({}, false);
-        window.toggleSaveButton(); // Re-check save button status
+        window.toggleSaveButton();
     });
   }
 
-  // MutationObserver to toggle save button when waybill blocks are removed
   const observer = new MutationObserver(window.toggleSaveButton);
   observer.observe(waybillsContainer, { childList: true });
 
 
-  // Form submission handler
   document.getElementById('waybillForm').addEventListener('submit', (event) => {
       let isValid = true;
       let firstInvalidField = null;
 
       document.querySelectorAll('.waybill-card').forEach(card => {
           card.querySelectorAll('input[required], select[required]').forEach(field => {
-              if (field.classList.contains('selectized')) { // Handle selectize inputs
+              if (field.classList.contains('selectized')) {
                   const selectizeInstance = $(field).data('selectize');
                   if (selectizeInstance && !selectizeInstance.getValue().trim()) {
                       isValid = false;
-                      // Highlight the selectize control directly
                       $(selectizeInstance.$control).addClass('border-red-500', 'ring-red-500'); // Add classes
                       if (!firstInvalidField) firstInvalidField = selectizeInstance.$control;
                   } else {
@@ -422,11 +419,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       if (!isValid) {
-          event.preventDefault(); // Stop form submission
+          event.preventDefault();
           alert('Please fill in all required fields.');
           if (firstInvalidField) {
               firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              // For Selectize, you might want to open the dropdown
               const selectizeInstance = $(firstInvalidField).data('selectize');
               if (selectizeInstance && !selectizeInstance.isOpen) {
                   selectizeInstance.open();
