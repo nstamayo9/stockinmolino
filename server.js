@@ -1,54 +1,15 @@
+// server.js
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
-const dayjs = require("dayjs");
+const dayjs = require("dayjs"); // Import dayjs
 const puppeteer = require("puppeteer");
 const ejs = require("ejs");
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
-const MongoStore = require('connect-mongo'); // Ensure connect-mongo is installed if you use it for sessions
 
 const app = express();
-
-// ----------------- MONGODB CONNECTIONS -----------------
-// Use a single connection, or ensure `mongoose.connect` options are robust
-// Ensure MONGO_URI is defined in your .env
-mongoose.connect(process.env.MONGO_URI, {
-  dbName: "stockdb",
-  serverSelectionTimeoutMS: 30000, // Timeout for server selection
-  socketTimeoutMS: 45000,        // Socket timeout
-  connectTimeoutMS: 30000,       // Initial connection timeout
-}).then(() => console.log("✅ MongoDB connected to stockdb (default connection)"))
-  .catch((err) => console.error("MongoDB default connection error:", err));
-
-// Your stockMolinoConn is already a separate connection.
-// It's crucial this connection also points to the same database.
-const stockMolinoConn = mongoose.createConnection(process.env.MONGO_URI, {
-  dbName: "stockdb",
-  serverSelectionTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
-  connectTimeoutMS: 30000,
-});
-stockMolinoConn.once("open", () =>
-  console.log("✅ MongoDB connected to stockdb (stockMolinoConn)")
-);
-stockMolinoConn.on("error", (err) =>
-  console.error("MongoDB stockdb connection error (stockMolinoConn):", err)
-);
-
-
-// ----------------- SCHEMAS / MODELS -----------------
-// These models should now be the updated versions including HugseesTrade fields
-const Product = require("./models/Product"); // Uses default connection
-const createIncomingModel = require("./models/Incoming");
-const Incoming = createIncomingModel(stockMolinoConn); // Uses stockMolinoConn
-const createActualCountModel = require("./models/ActualCount"); // Assuming this is your Count model factory
-const Count = createActualCountModel(stockMolinoConn); // Uses stockMolinoConn
-
-// Ensure your User model also connects to the correct database if it's separate
-const User = require("./models/User"); // Assuming User model uses default connection
-
 
 // ----------------- MIDDLEWARE -----------------
 app.use(express.json());
@@ -57,20 +18,10 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // --- Session middleware ---
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'supersecretkey', // Ensure this is a strong secret in .env
+  secret: process.env.SESSION_SECRET || 'supersecretkey',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ // Using connect-mongo for session storage
-    client: mongoose.connection.getClient(), // Use the default mongoose connection
-    collectionName: 'sessions',
-    ttl: 1000 * 60 * 60 * 24 // 1 day session
-  }),
-  cookie: { 
-    maxAge: 1000 * 60 * 60 * 24, // 1 day
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    httpOnly: true,
-    sameSite: 'lax',
-  }
+  cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
 // Simple authentication check middleware
@@ -94,14 +45,16 @@ const authorizeRole = (requiredRoles) => {
       return res.redirect('/login');
     }
 
+    console.log("Current user role:", req.session.role);
+    console.log("Required roles for this route:", rolesArray);
+
     if (rolesArray.includes(req.session.role)) {
       next();
     } else {
       console.warn(`Access Denied: User role '${req.session.role}' not in required roles [${rolesArray.join(', ')}]`);
       return res.status(403).render('access_denied', {
         currentUser: req.session.username,
-        currentRole: req.session.role,
-        message: "You do not have permission to access this page."
+        currentRole: req.session.role
       });
     }
   };
@@ -112,6 +65,29 @@ const authorizeRole = (requiredRoles) => {
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
+// ----------------- MONGODB CONNECTIONS -----------------
+mongoose
+  .connect(process.env.MONGO_URI, { dbName: "stockdb" })
+  .then(() => console.log("✅ MongoDB connected to stockdb"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+const stockMolinoConn = mongoose.createConnection(process.env.MONGO_URI, {
+  dbName: "stockdb",
+});
+stockMolinoConn.once("open", () =>
+  console.log("✅ MongoDB connected to stockdb")
+);
+stockMolinoConn.on("error", (err) =>
+  console.error("MongoDB stockdb connection error:", err)
+);
+
+// ----------------- SCHEMAS / MODELS -----------------
+const Product = require("./models/Product");
+const createIncomingModel = require("./models/Incoming");
+const Incoming = createIncomingModel(stockMolinoConn);
+const createActualCountModel = require("./models/ActualCount");
+const ActualCount = createActualCountModel(stockMolinoConn);
+const User = require("./models/User");
 
 // ----------------- LOGIN & LOGOUT (Publicly Accessible) -----------------
 app.get("/login", (req, res) => {
@@ -185,8 +161,9 @@ app.get("/", authorizeRole(['Super Admin', 'Admin', 'User']), async (req, res) =
     const incomingToday = incomingTodayAgg[0]?.total || 0;
 
     const discrepanciesThisMonthCount = await Incoming.aggregate([
-      { $match: { status: "CLOSED" } },
+      { $match: { status: "CLOSED" } }, // This gets all closed discrepancies
       { $unwind: "$items" },
+      //{ $project: "$items" },
       { $project: { diff: { $subtract: ["$items.actualCount", "$items.incoming"] } } },
       { $match: { diff: { $ne: 0 } } },
       { $count: "total" },
@@ -233,9 +210,9 @@ app.get("/", authorizeRole(['Super Admin', 'Admin', 'User']), async (req, res) =
     ]);
 
 
-    const sparklineProductsData = [5, 10, 8, 6, 12, 9, 7]; // Placeholder data
-    const sparklineWaybillsData = [2, 3, 1, 4, 3, 2, 5]; // Placeholder data
-    const sparklineReportsData = [20, 15, 22, 18, 25, 12, 17]; // Placeholder data
+    const sparklineProductsData = [5, 10, 8, 6, 12, 9, 7];
+    const sparklineWaybillsData = [2, 3, 1, 4, 3, 2, 5];
+    const sparklineReportsData = [20, 15, 22, 18, 25, 12, 17];
 
     res.render("index", {
       productCount,
@@ -434,34 +411,13 @@ app.post("/incoming", authorizeRole(['Super Admin', 'Admin']), async (req, res) 
       if (!waybillsRaw[key].waybillNo || !waybillsRaw[key].count || !waybillsRaw[key].uom || !waybillsRaw[key].items)
         continue;
 
-      const items = [];
-      for (const itemData of waybillsRaw[key].items) {
-        const product = await Product.findOne({ productName: itemData.productName });
-        if (!product) {
-          console.warn(`[stockinmolino] Product "${itemData.productName}" not found during Incoming creation. Skipping item.`);
-          // Assign null productId and default conversionFactor if product not found
-          items.push({
-            productName: itemData.productName || "",
-            incoming: Number(itemData.incoming) || 0,
-            uomIncoming: itemData.uomIncoming || "",
-            actualCount: itemData.actualCount ? Number(itemData.actualCount) : 0,
-            remarkActual: itemData.remarkActual || "",
-            productId: null, // Product not found
-            conversionFactor: 1 // Default conversion factor
-          });
-          continue;
-        }
-
-        items.push({
-          productName: itemData.productName || "",
-          incoming: Number(itemData.incoming) || 0,
-          uomIncoming: itemData.uomIncoming || "",
-          actualCount: itemData.actualCount ? Number(itemData.actualCount) : 0,
-          remarkActual: itemData.remarkActual || "",
-          productId: product._id, // Add the found Product ID
-          conversionFactor: product.conversionFactor || 1 // Use product's default conversionFactor if available
-        });
-      }
+      const items = waybillsRaw[key].items.map(item => ({
+        productName: item.productName || "",
+        incoming: Number(item.incoming) || 0,
+        uomIncoming: item.uomIncoming || "",
+        actualCount: item.actualCount ? Number(item.actualCount) : 0,
+        remarkActual: item.remarkActual || "",
+      }));
 
       waybillsToSave.push({
         date: waybillsRaw[key].date ? new Date(waybillsRaw[key].date) : new Date(),
@@ -524,7 +480,7 @@ app.post("/incoming/count/save", authorizeRole(['Super Admin', 'Admin']), async 
     }
 
     await waybill.save();
-    res.redirect("/incoming/report");
+    res.redirect("/incoming/count");
   } catch (err) {
     console.error(err);
     res.status(500).send("Error saving actual counts.");
