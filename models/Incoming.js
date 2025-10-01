@@ -31,6 +31,11 @@ const IncomingSchema = new mongoose.Schema(
         uomIncoming: { type: String, required: true, trim: true }, // UOM for this product
         actualCount: { type: Number, default: 0, min: 0 }, // Actual counted quantity
         remarkActual: { type: String, default: "", trim: true }, // Remarks for actual count
+
+        // >>> ADDED BY HUGSEESTRADE INTEGRATION <<<
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', sparse: true }, // Link to Product._id
+        conversionFactor: { type: Number, default: 1, min: 1 } // How many baseUnits in this UOM
+        // >>> END HUGSEESTRADE ADDITIONS <<<
       },
     ],
 
@@ -49,6 +54,8 @@ const IncomingSchema = new mongoose.Schema(
   },
   { timestamps: true } // Automatically adds createdAt and updatedAt
 );
+
+// NO POST('SAVE') HOOK HERE. HugseesTrade will poll or sync based on its own model.
 
 // Export a function that accepts a specific Mongoose connection
 module.exports = (connection) => {
