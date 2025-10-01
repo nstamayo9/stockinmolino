@@ -26,7 +26,7 @@ function escapeHtmlText(str) {
 async function loadProducts() {
   try {
     // Request a very high limit to get all products for dropdowns
-    const res = await fetch("/products/all?limit=9999");
+    const res = await fetch("/products/all?limit=9999"); // Assuming this route exists in stockinmolino
     if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
@@ -109,6 +109,18 @@ function createItemRow(waybillIdx, itemIdx, itemData = {}) {
         <option value="">-- Select UOM --</option>
       </select>
     </td>
+    <!-- ADDED: actualCount and remarkActual inputs -->
+    <td class="border px-2 py-1">
+      <input type="number" name="waybills[${waybillIdx}][items][${itemIdx}][actualCount]"
+             value="${escapeHtmlAttribute(itemData.actualCount !== undefined ? itemData.actualCount : itemData.incoming !== undefined ? itemData.incoming : '')}"
+             class="w-full p-2 border rounded h-10" min="0" required>
+    </td>
+    <td class="border px-2 py-1">
+      <input type="text" name="waybills[${waybillIdx}][items][${itemIdx}][remarkActual]"
+             value="${escapeHtmlAttribute(itemData.remarkActual !== undefined ? itemData.remarkActual : '')}"
+             class="w-full p-2 border rounded h-10">
+    </td>
+    <!-- END ADDED -->
     <td class="border px-2 py-1 text-center">
       <button type="button" class="text-red-500 hover:underline remove-item-btn">Remove</button>
     </td>
@@ -237,6 +249,8 @@ function createWaybillBlock(data = {}, isEditMode = false) {
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incoming QTY</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UOM</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Count</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remark</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
             </thead>
@@ -392,10 +406,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                   if (selectizeInstance && !selectizeInstance.getValue().trim()) {
                       isValid = false;
                       // Highlight the selectize control directly
-                      $(selectizeInstance.$control).addClass('border-red-500 ring-red-500');
+                      $(selectizeInstance.$control).addClass('border-red-500', 'ring-red-500'); // Add classes
                       if (!firstInvalidField) firstInvalidField = selectizeInstance.$control;
                   } else {
-                      $(selectizeInstance.$control).removeClass('border-red-500 ring-red-500');
+                      $(selectizeInstance.$control).removeClass('border-red-500', 'ring-red-500'); // Remove classes
                   }
               } else if (!field.value.trim()) {
                   isValid = false;
