@@ -1,4 +1,3 @@
-// models/ActualCount.js
 const mongoose = require("mongoose");
 
 module.exports = (connection) => {
@@ -14,9 +13,14 @@ module.exports = (connection) => {
       total: { type: Number, default: 0 },
       remarkActual: { type: String, default: "" },
       savedAt: { type: Date, default: Date.now },
+
+      // >>> ADDED BY HUGSEESTRADE INTEGRATION <<<
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', sparse: true }, // Link to Product._id
+      // >>> END HUGSEESTRADE ADDITIONS <<<
     },
     { timestamps: true }
   );
 
-  return connection.model("ActualCount", actualCountSchema);
+  // Return the model using the provided connection
+  return connection.model("Count", actualCountSchema); // <<< Note: Your stockinmolino names this model "Count"
 };
