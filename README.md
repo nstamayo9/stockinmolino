@@ -1,7 +1,7 @@
 # 📦 Stock in Molino
 
 An inventory and stock management system built with **Node.js, Express, MongoDB, and EJS**.  
-This project helps track incoming and outgoing products, generate reports (PDF/Excel), and manage users with authentication.  
+This project helps track incoming and outgoing products, generate reports (PDF/Excel).  
 
 ---
 
