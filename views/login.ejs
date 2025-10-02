@@ -1,0 +1,158 @@
+<!-- views/login.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Stock System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Gradient Background Animation */
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(-45deg, #667eea, #764ba2, #6b8dd6, #b792f6);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      overflow: hidden;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Canvas for particles */
+    #particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    /* Login card overlay */
+    .login-card {
+      position: relative;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<div class="flex items-center justify-center min-h-screen">
+  <div class="login-card bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
+    <h1 class="text-3xl font-bold text-center mb-6">Login</h1>
+    <% if (typeof message !== 'undefined' && message) { %>
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline"><%= message %></span>
+        </div>
+    <% } %>
+    <form action="/login" method="POST" class="space-y-5">
+      <div>
+        <label class="block text-sm font-medium mb-1">Username</label>
+        <input type="text" name="username" required
+               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Password</label>
+        <input type="password" name="password" required
+               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <button type="submit"
+              class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+        Login
+      </button>
+    </form>
+    <p class="mt-6 text-center text-gray-500 text-sm">
+      © 2025 nstamayo, All Rights Reserved
+    </p>
+  </div>
+</div>
+
+<script>
+  // Particle animation
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight;
+
+  const particleCount = 80;
+  const particles = [];
+
+  const mouse = { x: null, y: null, radius: 100 };
+
+  window.addEventListener('mousemove', function(e) {
+    mouse.x = e.x;
+    mouse.y = e.y;
+  });
+
+  window.addEventListener('resize', function() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  });
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * width;
+      this.y = Math.random() * height;
+      this.size = Math.random() * 3 + 1;
+      this.speedX = (Math.random() - 0.5) * 1.5;
+      this.speedY = (Math.random() - 0.5) * 1.5;
+      this.color = 'rgba(255,255,255,0.7)';
+    }
+
+    update() {
+      this.x += this.speedX;
+      this.y += this.speedY;
+
+      // Bounce from edges
+      if (this.x < 0 || this.x > width) this.speedX *= -1;
+      if (this.y < 0 || this.y > height) this.speedY *= -1;
+
+      // Repel from mouse
+      const dx = this.x - mouse.x;
+      const dy = this.y - mouse.y;
+      const distance = Math.sqrt(dx*dx + dy*dy);
+      if (distance < mouse.radius) {
+        const angle = Math.atan2(dy, dx);
+        const force = (mouse.radius - distance) / mouse.radius;
+        this.x += Math.cos(angle) * force * 5;
+        this.y += Math.sin(angle) * force * 5;
+      }
+    }
+
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+  }
+
+  function init() {
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle());
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+    particles.forEach(p => {
+      p.update();
+      p.draw();
+    });
+    requestAnimationFrame(animate);
+  }
+
+  init();
+  animate();
+</script>
+
+</body>
+</html>

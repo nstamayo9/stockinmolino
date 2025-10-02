@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Stock System</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #f3f4f6; /* Gray background */
+      color: #111827;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Neumorphic card style */
+    .neumorphic-card {
+      border-radius: 1rem;
+      box-shadow: 8px 8px 20px #d1d5db, -8px -8px 20px #ffffff;
+      transition: transform 0.3s, box-shadow 0.3s;
+      overflow: hidden;
+      position: relative;
+      color: #fff;
+    }
+
+    .neumorphic-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 12px 12px 24px #d1d5db, -12px -12px 24px #ffffff;
+    }
+
+    /* Animated gradient backgrounds for cards */
+    .gradient-products {
+      background: linear-gradient(-45deg, #4f46e5, #3b82f6, #06b6d4, #22c55e);
+      background-size: 400% 400%;
+      animation: gradientAnimation 15s ease infinite;
+    }
+    .gradient-waybills {
+      background: linear-gradient(-45deg, #16a34a, #4ade80, #facc15, #f59e0b);
+      background-size: 400% 400%;
+      animation: gradientAnimation 15s ease infinite;
+    }
+    .gradient-reports {
+      background: linear-gradient(-45deg, #db2777, #ec4899, #8b5cf6, #6366f1);
+      background-size: 400% 400%;
+      animation: gradientAnimation 15s ease infinite;
+    }
+    /* New gradients for the additional cards */
+    .gradient-recent-closed {
+        background: linear-gradient(-45deg, #4b5563, #6b7280, #9ca3af, #d1d5db);
+        background-size: 400% 400%;
+        animation: gradientAnimation 15s ease infinite;
+    }
+    .gradient-discrepancies {
+        background: linear-gradient(-45deg, #ef4444, #f87171, #fca5a5, #fecaca);
+        background-size: 400% 400%;
+        animation: gradientAnimation 15s ease infinite;
+    }
+
+
+    @keyframes gradientAnimation {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+
+    /* Button hover glow */
+    .glow-btn {
+      transition: all 0.3s ease;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+    }
+    .glow-btn:hover {
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+    }
+
+    /* Chart glow */
+    .chart-glow canvas {
+      filter: drop-shadow(0 0 8px rgba(0,0,0,0.2));
+    }
+
+    /* Custom scrollbar for content inside cards */
+    .scrollable-list {
+        max-height: 200px; /* Adjust as needed */
+        overflow-y: auto;
+        padding-right: 10px; /* Space for scrollbar */
+    }
+    .scrollable-list::-webkit-scrollbar {
+        width: 8px;
+    }
+    .scrollable-list::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+    .scrollable-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 10px;
+    }
+    .scrollable-list::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+</head>
+<body class="flex min-h-screen">
+
+  <!-- Sidebar -->
+  <%- include('partials/sidebar', { currentUser: currentUser, currentRole: currentRole }) %>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6">
+    <h1 class="text-4xl font-extrabold mb-8 text-gray-800">📊 Dashboard</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6">
+
+      <!-- Products Card -->
+      <div class="neumorphic-card gradient-products p-6 flex flex-col justify-between col-span-1 md:col-span-1">
+        <div>
+          <h2 class="text-xl font-semibold mb-2">Products</h2>
+          <p class="text-white/80 mb-4">Total products in system</p>
+          <div class="text-3xl font-bold"><%= productCount || 0 %></div>
+          <div class="mt-4 h-16 w-full chart-glow">
+            <canvas id="sparklineProducts" class="h-full w-full"></canvas>
+          </div>
+        </div>
+        <a href="/productlist" class="mt-6 inline-block glow-btn bg-white text-indigo-600 px-4 py-2 rounded-full font-semibold hover:bg-indigo-100 text-center">Manage Products</a>
+      </div>
+
+      <!-- Waybills Card -->
+      <div class="neumorphic-card gradient-waybills p-6 flex flex-col justify-between col-span-1 md:col-span-2">
+        <div>
+          <h2 class="text-xl font-semibold mb-2">Waybills</h2>
+          <div class="flex items-center mb-2 gap-2 flex-wrap text-sm">
+            <span class="bg-green-100 text-green-900 px-2 py-1 rounded-full">Open: <%= openWaybills || 0 %></span>
+            <span class="bg-gray-200 text-gray-800 px-2 py-1 rounded-full">Closed: <%= closedWaybills || 0 %></span>
+            <span class="bg-red-100 text-red-900 px-2 py-1 rounded-full">Overdue: <%= overdueWaybills || 0 %></span>
+          </div>
+          <p class="text-white/80">Waybills summary with open/closed/overdue</p>
+        </div>
+        <div class="mt-4 flex gap-2 flex-wrap">
+          <a href="/waybills" class="flex-1 glow-btn bg-white text-green-500 px-4 py-2 rounded-full font-semibold hover:bg-green-100 text-center">View Waybills</a>
+          <a href="/incoming/count" class="flex-1 glow-btn bg-yellow-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-yellow-400 text-center">Count Open</a>
+        </div>
+        <div class="mt-4 h-40 w-full chart-glow">
+          <canvas id="waybillsChart" class="h-full w-full rounded-lg"></canvas>
+        </div>
+        <div class="mt-2 h-12 w-full chart-glow">
+          <canvas id="sparklineWaybills" class="h-full w-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Reports Card -->
+      <div class="neumorphic-card gradient-reports p-6 flex flex-col justify-between col-span-1 md:col-span-2">
+        <div>
+          <h2 class="text-xl font-semibold mb-2">Reports</h2>
+          <p class="text-white/80 mb-2">Incoming today: <span class="font-bold"><%= incomingToday || 0 %></span></p>
+          <p class="text-white/80 mb-2">Discrepancies this month: <span class="font-bold text-red-200"><%= discrepanciesThisMonth || 0 %></span></p>
+          <p class="text-white/80 mb-2">Closed vs Open: <span class="font-bold"><%= closedWaybills || 0 %> / <%= openWaybills || 0 %></span></p>
+        </div>
+        <a href="/incoming/report" class="mt-4 inline-block glow-btn bg-white text-pink-500 px-4 py-2 rounded-full font-semibold hover:bg-pink-100 text-center">View Reports</a>
+        <div class="mt-4 h-40 w-full chart-glow">
+          <canvas id="reportsChart" class="h-full w-full rounded-lg"></canvas>
+        </div>
+        <div class="mt-2 h-12 w-full chart-glow">
+          <canvas id="sparklineReports" class="h-full w-full"></canvas>
+        </div>
+      </div>
+
+      <!-- NEW: Closed Waybills This Month Card -->
+      <div class="neumorphic-card gradient-recent-closed p-6 col-span-1 md:col-span-2">
+          <h2 class="text-xl font-semibold mb-4">Recent Closed Waybills (This Month)</h2>
+          <% if (closedWaybillsThisMonth && closedWaybillsThisMonth.length > 0) { %>
+              <div class="scrollable-list text-sm">
+                  <% closedWaybillsThisMonth.forEach(function(waybill) { %>
+                      <div class="bg-gray-700/50 rounded-lg p-3 mb-2 flex justify-between items-center">
+                          <div>
+                              <p class="font-bold"><%= waybill.waybillNo %></p>
+                              <p class="text-xs text-white/70">Closed: <%= dayjs(waybill.closedAt).format('YYYY-MM-DD HH:mm') %></p>
+                          </div>
+                          <span class="text-white/90 text-xs"><%= waybill.count %> <%= waybill.uom %></span>
+                      </div>
+                  <% }); %>
+              </div>
+          <% } else { %>
+              <p class="text-white/70">No closed waybills this month.</p>
+          <% } %>
+          <a href="/incoming/report/closed" class="mt-6 inline-block glow-btn bg-white text-gray-700 px-4 py-2 rounded-full font-semibold hover:bg-gray-200 text-center w-full">View All Closed Reports</a>
+      </div>
+
+      <!-- NEW: Discrepancies This Month Card -->
+      <div class="neumorphic-card gradient-discrepancies p-6 col-span-1 md:col-span-3">
+          <h2 class="text-xl font-semibold mb-4">Discrepancies This Month</h2>
+          <% if (discrepanciesListThisMonth && discrepanciesListThisMonth.length > 0) { %>
+              <div class="scrollable-list text-sm">
+                  <% discrepanciesListThisMonth.forEach(function(item) { %>
+                      <div class="bg-red-800/50 rounded-lg p-3 mb-2">
+                          <p class="font-bold">Waybill: <%= item.waybillNo %></p>
+                          <p class="text-white/80">Product: <%= item.productName %></p>
+                          <p class="text-white/80">Incoming: <%= item.incoming %>, Actual: <%= item.actualCount %> <span class="text-yellow-200">(Diff: <%= item.incoming - item.actualCount %>)
+			  <p class="text-white/80">Actual Count Remarks: <span class="text-yellow-200"><%= item.remarkActual %></p></span></p>
+                          <p class="text-xs text-white/70">Closed: <%= dayjs(item.closedAt).format('YYYY-MM-DD HH:mm') %></p>
+                      </div>
+                  <% }); %>
+              </div>
+          <% } else { %>
+              <p class="text-white/70">No discrepancies found this month.</p>
+          <% } %>
+          <a href="/incoming/report/closed" class="mt-6 inline-block glow-btn bg-white text-red-600 px-4 py-2 rounded-full font-semibold hover:bg-red-100 text-center w-full">View All Discrepancies</a>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // Animated charts on load
+    function animateChart(chart) {
+      chart.options.animation = {
+        duration: 1500,
+        easing: 'easeOutQuart'
+      };
+      chart.update();
+    }
+
+    // Doughnut chart for Waybills
+    const ctxWaybills = document.getElementById('waybillsChart').getContext('2d');
+    const waybillsChart = new Chart(ctxWaybills, {
+      type: 'doughnut',
+      data: {
+        labels: ['Open', 'Closed', 'Overdue'],
+        datasets: [{
+          data: [<%= openWaybills || 0 %>, <%= closedWaybills || 0 %>, <%= overdueWaybills || 0 %>],
+          backgroundColor: ['#34D399', '#9CA3AF', '#FCA5A5'],
+          borderWidth: 2
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#ffffff' } } } } // Changed legend color to white for contrast
+    });
+    animateChart(waybillsChart);
+
+    // Bar chart for Reports
+    const ctxReports = document.getElementById('reportsChart').getContext('2d');
+    const reportsChart = new Chart(ctxReports, {
+      type: 'bar',
+      data: {
+        labels: ['Incoming Today', 'Discrepancies'],
+        datasets: [{
+          label: 'Items',
+          data: [<%= incomingToday || 0 %>, <%= discrepanciesThisMonth || 0 %>],
+          backgroundColor: ['#F472B6', '#FB7185']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#ffffff' } }, // Changed ticks color to white
+          x: { ticks: { autoSkip: false, color: '#ffffff' } } // Changed ticks color to white
+        }
+      }
+    });
+    animateChart(reportsChart);
+
+    // Sparkline function
+    function createSparkline(ctxId, dataPoints, color) {
+      const ctx = document.getElementById(ctxId).getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dataPoints.map((_, i) => i + 1),
+          datasets: [{
+            data: dataPoints,
+            borderColor: color,
+            backgroundColor: color + '33',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { display: false }, y: { display: false } },
+          animation: { duration: 1000, easing: 'easeOutQuad' }
+        }
+      });
+    }
+
+    // Sparkline data (replace with actual dynamic data if available)
+    createSparkline('sparklineProducts', JSON.parse('<%- productSparklineData %>'), '#ffffff');  
+    createSparkline('sparklineWaybills', JSON.parse('<%- waybillsSparklineData %>'), '#ffffff');  
+    createSparkline('sparklineReports', JSON.parse('<%- reportsSparklineData %>'), '#ffffff'); 
+  </script>
+</body>
+</html>

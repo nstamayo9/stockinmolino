@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add User | Stock System</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .input-error-border {
+      border-color: #ef4444; /* Tailwind red-500 */
+      box-shadow: 0 0 0 1px #ef4444;
+    }
+    .toast {
+      visibility: hidden; /* Hidden by default */
+      min-width: 250px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      padding: 16px;
+      position: fixed;
+      z-index: 100;
+      top: 30px; /* Position from the top */
+      right: 30px; /* Position from the right */
+      transform: none; /* Remove centering transform */
+      opacity: 0;
+      transition: opacity 0.5s, visibility 0.5s;
+    }
+    .toast.show {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <%- include('partials/sidebar', { currentUser: currentUser, currentRole: currentRole }) %>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex items-center justify-center p-6">
+      <div class="w-full max-w-4xl">
+
+        <!-- Card -->
+        <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 hover:shadow-2xl transition">
+
+          <!-- Card Header -->
+          <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-t-2xl px-6 py-4">
+            <h1 class="text-xl font-semibold">➕ Add User</h1>
+          </div>
+
+          <!-- Card Body -->
+          <div class="p-8">
+            <% if (error) { %>
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <strong class="font-bold">Error!</strong>
+                    <span class="block sm:inline"><%= error %></span>
+                </div>
+            <% } %>
+
+            <form id="userForm" action="/User/add" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              <!-- Full Name -->
+              <div>
+                <label for="fullname" class="block text-sm font-medium text-gray-700">Full Name</label>
+                <div class="relative mt-1">
+                  <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">👤</span>
+                  <input type="text" id="fullname" name="fullname" required
+                         class="w-full pl-10 pr-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         value="<%= typeof formData !== 'undefined' ? formData.fullname : '' %>">
+                </div>
+                <p class="text-red-500 text-sm hidden" id="fullnameError">Full Name is required.</p>
+              </div>
+
+              <!-- Username -->
+              <div>
+                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                <div class="relative mt-1">
+                  <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">👤</span>
+                  <input type="text" id="username" name="username" required
+                         class="w-full pl-10 pr-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         value="<%= typeof formData !== 'undefined' ? formData.username : '' %>">
+                </div>
+                <p class="text-red-500 text-sm hidden" id="usernameError">Username is required.</p>
+              </div>
+
+              <!-- Email -->
+              <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <div class="relative mt-1">
+                  <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">✉️</span>
+                  <input type="email" id="email" name="email" required
+                         class="w-full pl-10 pr-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         value="<%= typeof formData !== 'undefined' ? formData.email : '' %>">
+                </div>
+                <p class="text-red-500 text-sm hidden" id="emailError">Enter a valid email.</p>
+              </div>
+
+              <!-- Role - UPDATED SECTION -->
+              <div>
+                <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
+                <select id="role" name="role" required
+                        class="w-full mt-1 px-4 py-2 border rounded-lg shadow-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="">-- Select Role --</option>
+                  <% if (currentRole === 'Super Admin') { %>
+                    <option value="Super Admin" <%= (typeof formData !== 'undefined' && formData.role === 'Super Admin') ? 'selected' : '' %>>Super Admin</option>
+                  <% } %>
+                  <option value="Admin" <%= (typeof formData !== 'undefined' && formData.role === 'Admin') ? 'selected' : '' %>>Admin</option>
+                  <option value="User" <%= (typeof formData !== 'undefined' && formData.role === 'User') ? 'selected' : '' %>>User</option>
+                </select>
+                <p class="text-red-500 text-sm hidden" id="roleError">Role is required.</p>
+              </div>
+
+              <!-- Password -->
+              <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <div class="relative mt-1">
+                  <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">🔒</span>
+                  <input type="password" id="password" name="password" required
+                         class="w-full pl-10 pr-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <p class="text-red-500 text-sm hidden" id="passwordError">Password is required.</p>
+              </div>
+
+              <!-- Confirm Password -->
+              <div>
+                <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                <div class="relative mt-1">
+                  <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">🔒</span>
+                  <input type="password" id="confirmPassword" name="confirmPassword" required
+                         class="w-full pl-10 pr-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <p class="text-red-500 text-sm hidden" id="confirmPasswordError">Confirm Password is required.</p>
+                <p class="text-red-500 text-sm hidden" id="passwordMismatchError">Passwords do not match.</p>
+              </div>
+
+              <!-- Buttons -->
+              <div class="col-span-1 md:col-span-2 flex justify-end gap-3 pt-4">
+                <a href="/User/list"
+                   class="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                   Cancel
+                </a>
+                <button type="submit"
+                        class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-md transition">
+                  Save
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Status Toast Notification -->
+  <div id="statusToast" class="toast">
+    This is a notification!
+  </div>
+
+
+  <!-- Validation Script -->
+  <script>
+    const form = document.getElementById("userForm");
+    const inputs = form.querySelectorAll("input[required], select[required]");
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+
+    // Function to show toast
+    function showToast(message, isSuccess = true) {
+      const toast = document.getElementById('statusToast');
+      toast.textContent = message;
+      toast.style.backgroundColor = isSuccess ? '#10B981' : '#EF4444'; // green-500 or red-500
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000); // Hide after 3 seconds
+    }
+
+    // Function to reset error display for an input
+    function resetInputError(inputElement) {
+        inputElement.classList.remove("input-error-border");
+        const errorEl = document.getElementById(inputElement.id + "Error");
+        if (errorEl) errorEl.classList.add("hidden");
+    }
+
+    // Function to show error display for an input
+    function showInputError(inputElement, errorMessageId, message) {
+        inputElement.classList.add("input-error-border");
+        const errorEl = document.getElementById(errorMessageId);
+        if (errorEl) {
+            errorEl.textContent = message; // Set specific message
+            errorEl.classList.remove("hidden");
+        }
+    }
+
+
+    form.addEventListener("submit", (e) => {
+      let valid = true;
+
+      // Reset error styles and messages for all inputs
+      inputs.forEach(input => {
+        resetInputError(input);
+        // Special handling for password mismatch error
+        const mismatchError = document.getElementById('passwordMismatchError');
+        if (mismatchError) mismatchError.classList.add("hidden");
+      });
+
+
+      // Validate all required fields
+      inputs.forEach(input => {
+        const value = input.value.trim();
+        // Check for empty or default select option
+        if (!value || (input.tagName === 'SELECT' && value === '')) {
+          valid = false;
+          showInputError(input, input.id + "Error", input.id.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()) + " is required.");
+        }
+      });
+
+      // Specific Password and Confirm Password validation
+      if (!passwordInput.value.trim()) {
+          valid = false;
+          showInputError(passwordInput, 'passwordError', "Password is required.");
+      }
+      if (!confirmPasswordInput.value.trim()) {
+          valid = false;
+          showInputError(confirmPasswordInput, 'confirmPasswordError', "Confirm Password is required.");
+      } else if (passwordInput.value !== confirmPasswordInput.value) {
+          valid = false;
+          showInputError(confirmPasswordInput, 'passwordMismatchError', "Passwords do not match.");
+      }
+
+
+      if (!valid) {
+        e.preventDefault(); // Prevent form submission if validation fails
+        showToast("Please correct the errors in the form.", false); // Show error toast
+      }
+    });
+
+    // Real-time password match check
+    [passwordInput, confirmPasswordInput].forEach(input => {
+      input.addEventListener("input", () => {
+        // Reset specific password errors first
+        resetInputError(passwordInput);
+        resetInputError(confirmPasswordInput);
+        const mismatchError = document.getElementById('passwordMismatchError');
+        if (mismatchError) mismatchError.classList.add("hidden");
+
+        // Check if password field is empty
+        if (!passwordInput.value.trim()) {
+            showInputError(passwordInput, 'passwordError', "Password is required.");
+        }
+        // Check if confirm password field is empty
+        if (!confirmPasswordInput.value.trim()) {
+            showInputError(confirmPasswordInput, 'confirmPasswordError', "Confirm Password is required.");
+        }
+
+        // Check for mismatch only if both fields have values
+        if (passwordInput.value.trim() && confirmPasswordInput.value.trim() && passwordInput.value !== confirmPasswordInput.value) {
+            showInputError(confirmPasswordInput, 'passwordMismatchError', "Passwords do not match.");
+        }
+      });
+    });
+
+
+    // Check for success message on page load (from server redirect)
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true') {
+        showToast("User added successfully!", true);
+        // Clear the success parameter from URL after showing toast
+        history.replaceState({}, document.title, window.location.pathname);
+      }
+    });
+
+  </script>
+
+</body>
+</html>
