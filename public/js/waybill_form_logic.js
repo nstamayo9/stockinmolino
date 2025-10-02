@@ -88,7 +88,6 @@ function createItemRow(waybillIdx, itemIdx, itemData = {}) {
   // Set a data attribute to easily find and update product category
   tr.setAttribute('data-item-index', itemIdx);
 
-  // Use a class for Selectize elements to easily initialize them
   const productSelectId = `waybills_${waybillIdx}_items_${itemIdx}_productName`;
   const uomSelectId = `waybills_${waybillIdx}_items_${itemIdx}_uomIncoming`;
   const categoryInputId = `waybills_${waybillIdx}_items_${itemIdx}_category`;
