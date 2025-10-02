@@ -1,3 +1,4 @@
+// D:\stockinmolino\models\ActualCount.js (This defines the 'Count' model for stockinmolino)
 const mongoose = require("mongoose");
 
 module.exports = (connection) => {
@@ -21,6 +22,5 @@ module.exports = (connection) => {
     { timestamps: true }
   );
 
-  // Return the model using the provided connection
-  return connection.model("Count", actualCountSchema); // <<< Note: Your stockinmolino names this model "Count"
+  return connection.model("Count", actualCountSchema); // <<< Use 'Count' model name
 };

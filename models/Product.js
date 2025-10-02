@@ -1,3 +1,4 @@
+// D:\stockinmolino\models\Product.js
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
@@ -43,4 +44,7 @@ productSchema.pre('findOneAndUpdate', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Product', productSchema);
+// >>> MODIFIED TO EXPORT A FACTORY FUNCTION <<<
+module.exports = (connection) => {
+  return connection.model('Product', productSchema);
+};

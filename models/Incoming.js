@@ -33,7 +33,7 @@ const IncomingSchema = new mongoose.Schema(
         actualCount: { type: Number, default: 0, min: 0 }, // Actual counted quantity
         remarkActual: { type: String, default: "", trim: true }, // Remarks for actual count
 
-        // >>> ADDED BY HUGSEESTRADE INTEGRATION (FIELDS ONLY) <<<
+        // >>> ADDED BY HUGSEESTRADE INTEGRATION <<<
         productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', sparse: true }, // Link to Product._id
         conversionFactor: { type: Number, default: 1, min: 1 } // How many baseUnits in this UOM
         // >>> END HUGSEESTRADE ADDITIONS <<<
