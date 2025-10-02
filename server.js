@@ -61,15 +61,19 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ // Using connect-mongo for session storage
-    client: stockMolinoConn.getClient(), // Client obtained from stockMolinoConn
+    client: stockMolinoConn.getClient(), // Use stockMolinoConn's client for session
     collectionName: 'sessions',
     ttl: 1000 * 60 * 60 * 24 // 1 day session
   }),
   cookie: { 
     maxAge: 1000 * 60 * 60 * 24, // 1 day
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    // >>> MODIFIED: Make secure truly conditional and set sameSite properly for production <<<
+    secure: process.env.NODE_ENV === 'production', // Still conditional on NODE_ENV
     httpOnly: true,
-    sameSite: 'lax',
+    // IMPORTANT: 'None' for cross-site requires 'Secure: true'.
+    // 'Lax' is often sufficient for same-site, but can cause issues with some redirects.
+    // Try 'None' if 'Lax' doesn't work AND you're using HTTPS.
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', 
   }
 }));
 
@@ -902,4 +906,5 @@ waitForDbConnection().then(() => {
     console.error("Failed to connect to database before starting server:", err);
     process.exit(1);
   });
+
 
