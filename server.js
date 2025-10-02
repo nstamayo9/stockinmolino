@@ -11,7 +11,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo'); // Ensure connect-mongo is installed
 
 const app = express();
-
+app.set('trust proxy', 1); // Trust the first proxy (Render.com load balancer)
 // ----------------- MONGODB CONNECTIONS -----------------
 // We will use a single Mongoose connection instance for all models for consistency.
 const stockMolinoConn = mongoose.createConnection(process.env.MONGO_URI, {
@@ -902,3 +902,4 @@ waitForDbConnection().then(() => {
     console.error("Failed to connect to database before starting server:", err);
     process.exit(1);
   });
+
