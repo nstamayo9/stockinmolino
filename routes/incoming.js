@@ -1,20 +1,19 @@
+// D:\stockinmolino\routes\incoming.js
 const express = require("express");
 const router = express.Router();
 const dayjs = require("dayjs");
-const mongoose = require("mongoose"); // Ensure mongoose is available for ObjectId
+const mongoose = require("mongoose");
 
 // Import models - ensure all are factory functions and use the same connection
-// Assuming models/Incoming.js and models/ActualCount.js (Count) are factory functions
 const Incoming = require("../models/Incoming")(mongoose.connection);
 const Count = require("../models/ActualCount")(mongoose.connection); // Your stockinmolino calls it Count, but we'll use the filename
-// <<< CORRECTED: Product now loaded as a factory function using mongoose.connection >>>
-const Product = require("../models/Product")(mongoose.connection); 
+const Product = require("../models/Product")(mongoose.connection); // Product now loaded as a factory function
 
 module.exports = () => {
   // GET Incoming Count page
   router.get("/incoming/count", async (req, res) => {
     try {
-      const waybills = await Incoming.find().lean();
+      const waybills = await Incoming.find({ status: "OPEN" }).sort({ createdAt: -1 });
       res.render("incoming_count", { waybills, dayjs, currentUser: req.session.username, currentRole: req.session.role });
     } catch (err) {
       console.error("Error fetching waybills:", err);
@@ -22,7 +21,7 @@ module.exports = () => {
     }
   });
 
-  // POST Save Actual Counts + Remarks
+  // POST Save Actual Counts + Remarks (for stockinmolino's /incoming/count/save)
   router.post("/incoming/count/save", async (req, res) => {
     try {
       const { waybillId, counts, remarkActual } = req.body;
@@ -31,15 +30,22 @@ module.exports = () => {
       const waybill = await Incoming.findById(waybillId);
       if (!waybill) return res.status(404).send("Waybill not found.");
 
+      let incomingModified = false; // Flag to check if waybill.save() is needed
       for (const item of waybill.items) {
         const rawValue = counts?.[item.productName] || "";
         const numbers = rawValue
           .split(",")
           .map((n) => parseInt(n.trim()))
           .filter((n) => !isNaN(n));
-        item.actualCount = numbers.reduce((sum, val) => sum + val, 0);
-
-        item.remarkActual = remarkActual?.[item.productName] || "";
+        
+        if(item.actualCount !== numbers.reduce((sum, val) => sum + val, 0)) { // Check if actualCount changed
+            item.actualCount = numbers.reduce((sum, val) => sum + val, 0);
+            incomingModified = true;
+        }
+        if(item.remarkActual !== (remarkActual?.[item.productName] || "")) { // Check if remarkActual changed
+            item.remarkActual = remarkActual?.[item.productName] || "";
+            incomingModified = true;
+        }
 
         // >>> HUGSEESTRADE INTEGRATION: Ensure productId and conversionFactor are present on save <<<
         if (!item.productId || !item.conversionFactor) { // Only attempt lookup if not already linked
@@ -47,16 +53,34 @@ module.exports = () => {
             if (product) {
                 item.productId = product._id;
                 item.conversionFactor = product.conversionFactor || 1; // Assuming product.conversionFactor can exist in product model
+                incomingModified = true;
             } else {
                 console.warn(`[stockinmolino] Product "${item.productName}" not found during Incoming count save. productId/conversionFactor not set.`);
-                item.productId = null;
+                item.productId = null; // Set explicitly to null if not found
                 item.conversionFactor = 1; // Default
+                incomingModified = true;
             }
         }
         // >>> END HUGSEESTRADE INTEGRATION <<<
       }
 
-      await waybill.save();
+      if(incomingModified) { // Only save if the waybill was actually modified
+          await waybill.save(); // This will save the updated Incoming document
+          console.log(`[stockinmolino-routes/incoming.js] Waybill ${waybill.waybillNo} updated after count save.`);
+          // <<< HUGSEESTRADE INTEGRATION: Trigger Webhook after save <<<
+          try {
+              await fetch('http://localhost:5000/api/webhooks/incoming-update', { // Adjust URL for deployment
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ incomingId: waybill._id, secret: process.env.WEBHOOK_SECRET })
+              });
+              console.log(`[stockinmolino-routes/incoming.js] Webhook sent for count save of Incoming ID: ${waybill._id}`);
+          } catch (webhookError) {
+              console.error(`[stockinmolino-routes/incoming.js] ERROR sending webhook for count save of Incoming ID ${waybill._id}:`, webhookError);
+          }
+          // >>> END HUGSEESTRADE INTEGRATION <<<
+      }
+
 
       // Also insert into "counts" collection (our ActualCount model)
       const formattedDate = new Date(waybill.date).toLocaleDateString("en-US", {
@@ -65,28 +89,24 @@ module.exports = () => {
         year: "numeric",
       });
 
-      const countDocs = [];
       for(const item of waybill.items) {
           const product = await Product.findOne({ productName: item.productName }); // Re-lookup Product for Count doc
-          countDocs.push({
-            waybillNo: waybill.waybillNo,
-            count: waybill.count,
-            uom: waybill.uom,
-            date: formattedDate,
-            productName: item.productName,
-            actualCount: item.actualCount,
-            remarkActual: item.remarkActual || "",
-            productId: product ? product._id : null,
-            waybillId: waybill._id
-          });
-      }
-
-      for(const doc of countDocs) {
-        await Count.findOneAndUpdate(
-          { waybillId: doc.waybillId, productName: doc.productName },
-          { $set: doc },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
+          await Count.findOneAndUpdate(
+            { waybillId: waybill._id, productName: item.productName }, // Filter by waybillId and productName
+            {
+              waybillId: waybill._id,
+              waybillNo: waybill.waybillNo,
+              count: waybill.count,
+              uom: waybill.uom,
+              date: formattedDate,
+              productName: item.productName,
+              actualCount: item.actualCount,
+              remarkActual: item.remarkActual || "",
+              productId: product ? product._id : null,
+              savedAt: new Date(),
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
       }
 
       res.redirect("/incoming/report");
@@ -108,44 +128,53 @@ module.exports = () => {
 
       const waybillsToSave = [];
       for (const key in waybillsRaw) {
-        if (!waybillsRaw[key].waybillNo || !waybillsRaw[key].count || !waybillsRaw[key].uom || !waybillsRaw[key].items)
+        const wbData = waybillsRaw[key];
+        if (!wbData.waybillNo || !wbData.count || !wbData.uom || !wbData.items)
           continue;
 
+        // <<< ADDED: Duplicate Waybill Number Check >>>
+        const existingIncoming = await Incoming.findOne({ waybillNo: wbData.waybillNo });
+        if (existingIncoming) {
+          console.warn(`[stockinmolino-routes/incoming.js] WARNING: Duplicate waybill number detected: ${wbData.waybillNo}`);
+          return res.status(409).send(`Duplicate Waybill Number: ${wbData.waybillNo}. Please use a unique number.`);
+        }
+        // <<< END ADDED >>>
+
         const items = [];
-        for (const itemData of waybillsRaw[key].items) {
-          console.log(`[stockinmolino-routes/incoming.js] POST /incoming: Looking up Product for productName: "${itemData.productName}"`); // <<< Debug Log
-          const product = await Product.findOne({ productName: itemData.productName }); // Use stockinmolino's Product model
+        for (const itemData of wbData.items) {
+          console.log(`[stockinmolino-routes/incoming.js] POST /incoming: Searching for Product with productName: "${itemData.productName}"`);
+          const product = await Product.findOne({ productName: itemData.productName });
           
           if (!product) {
-            console.warn(`[stockinmolino-routes/incoming.js] WARNING: Product "${itemData.productName}" NOT FOUND in DB. Item will be saved with null productId.`); // <<< Debug Log
+            console.warn(`[stockinmolino-routes/incoming.js] WARNING: Product "${itemData.productName}" NOT FOUND in DB. Item will be saved with null productId.`);
             items.push({
               productName: itemData.productName || "",
               incoming: Number(itemData.incoming) || 0,
               uomIncoming: itemData.uomIncoming || "",
               actualCount: itemData.actualCount ? Number(itemData.actualCount) : 0,
               remarkActual: itemData.remarkActual || "",
-              productId: null, // Product not found, so productId is null
-              conversionFactor: Number(itemData.conversionFactor) || 1 // Use provided or default
+              productId: null,
+              conversionFactor: Number(itemData.conversionFactor) || 1
             });
           } else {
-            console.log(`[stockinmolino-routes/incoming.js] Product "${itemData.productName}" FOUND (ID: ${product._id}).`); // <<< Debug Log
+            console.log(`[stockinmolino-routes/incoming.js] Product "${itemData.productName}" FOUND (ID: ${product._id}).`);
             items.push({
               productName: itemData.productName || "",
               incoming: Number(itemData.incoming) || 0,
               uomIncoming: itemData.uomIncoming || "",
               actualCount: itemData.actualCount ? Number(itemData.actualCount) : 0,
               remarkActual: itemData.remarkActual || "",
-              productId: product._id, // Add the found Product ID
-              conversionFactor: Number(itemData.conversionFactor) || 1 // Use provided or default
+              productId: product._id,
+              conversionFactor: Number(itemData.conversionFactor) || 1
             });
           }
         }
 
         waybillsToSave.push({
-          date: waybillsRaw[key].date ? new Date(waybillsRaw[key].date) : new Date(),
-          waybillNo: waybillsRaw[key].waybillNo,
-          count: Number(waybillsRaw[key].count),
-          uom: waybillsRaw[key].uom,
+          date: wbData.date ? new Date(wbData.date) : new Date(),
+          waybillNo: wbData.waybillNo,
+          count: Number(wbData.count),
+          uom: wbData.uom,
           items,
           status: "OPEN",
         });
@@ -154,7 +183,22 @@ module.exports = () => {
       for (const wbData of waybillsToSave) {
         const doc = new Incoming(wbData);
         await doc.save();
-        console.log(`[stockinmolino-routes/incoming.js] New Incoming document saved (ID: ${doc._id}).`); // <<< Debug Log
+        console.log(`[stockinmolino-routes/incoming.js] New Incoming document saved (ID: ${doc._id}).`);
+        doc.items.forEach((item, index) => {
+            console.log(`[stockinmolino-routes/incoming.js]   Item ${index}: productName: "${item.productName}", productId: ${item.productId}, conversionFactor: ${item.conversionFactor}`);
+        });
+        // <<< HUGSEESTRADE INTEGRATION: Trigger Webhook after save for new Waybill >>>
+        try {
+            await fetch('http://localhost:5000/api/webhooks/incoming-update', { // Adjust URL for deployment
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ incomingId: doc._id, secret: process.env.WEBHOOK_SECRET })
+            });
+            console.log(`[stockinmolino-routes/incoming.js] Webhook sent for new Incoming ID: ${doc._id}`);
+        } catch (webhookError) {
+            console.error(`[stockinmolino-routes/incoming.js] ERROR sending webhook for new Incoming ID ${doc._id}:`, webhookError);
+        }
+        // >>> END HUGSEESTRADE INTEGRATION <<<
       }
 
       res.redirect("/incoming/new");
@@ -167,6 +211,38 @@ module.exports = () => {
 
   // ... (existing routes like app.get("/waybills/close/:id")) ...
 
+  router.post("/waybills/close/:id", authorizeRole(['Super Admin', 'Admin']), async (req, res) => {
+    try {
+      const waybill = await Incoming.findById(req.params.id);
+      if (!waybill) return res.status(404).send("Waybill not found.");
+
+      const oldStatus = waybill.status; // Store original status
+      waybill.status = "CLOSED";
+      waybill.closedAt = new Date();
+      await waybill.save();
+      console.log(`[stockinmolino-routes/incoming.js] Waybill ${waybill.waybillNo} (ID: ${waybill._id}) status changed from ${oldStatus} to CLOSED.`);
+
+      // <<< HUGSEESTRADE INTEGRATION: Trigger Webhook after status change to CLOSED >>>
+      try {
+        await fetch('http://localhost:5000/api/webhooks/incoming-update', { // Adjust URL for deployment
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ incomingId: waybill._id, secret: process.env.WEBHOOK_SECRET })
+        });
+        console.log(`[stockinmolino-routes/incoming.js] Webhook sent for close of Incoming ID: ${waybill._id}`);
+      } catch (webhookError) {
+        console.error(`[stockinmolino-routes/incoming.js] ERROR sending webhook for close of Incoming ID ${waybill._id}:`, webhookError);
+      }
+      // >>> END HUGSEESTRADE INTEGRATION <<<
+
+      res.redirect("/waybills");
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error closing waybill.");
+    }
+  });
+
+
   // POST Route for editing existing waybills
   router.post("/waybills/edit/:id", authorizeRole(['Super Admin', 'Admin']), async (req, res) => {
     try {
@@ -176,11 +252,11 @@ module.exports = () => {
 
       const items = [];
       for (const itemData of wbRaw.items) {
-          console.log(`[stockinmolino-routes/incoming.js] POST /waybills/edit: Looking up Product for productName: "${itemData.productName}"`); // <<< Debug Log
+          console.log(`[stockinmolino-routes/incoming.js] POST /waybills/edit: Looking up Product for productName: "${itemData.productName}"`);
           const product = await Product.findOne({ productName: itemData.productName });
           if (!product) {
-              console.warn(`[stockinmolino-routes/incoming.js] WARNING: Product "${itemData.productName}" NOT FOUND during Incoming edit. Item will be saved with null productId.`); // <<< Debug Log
-              items.push({
+              console.warn(`[stockinmolino-routes/incoming.js] WARNING: Product "${itemData.productName}" NOT FOUND during Incoming edit. Item will be saved with null productId.`);
+              items.push({ // Still push the item, but with null productId
                 productName: itemData.productName || "",
                 incoming: Number(itemData.incoming) || 0,
                 uomIncoming: itemData.uomIncoming || "",
@@ -190,7 +266,7 @@ module.exports = () => {
                 conversionFactor: Number(itemData.conversionFactor) || 1
               });
           } else {
-              console.log(`[stockinmolino-routes/incoming.js] Product "${itemData.productName}" FOUND (ID: ${product._id}).`); // <<< Debug Log
+              console.log(`[stockinmolino-routes/incoming.js] Product "${itemData.productName}" FOUND (ID: ${product._id}).`);
               items.push({
                 productName: itemData.productName || "",
                 incoming: Number(itemData.incoming) || 0,
@@ -213,7 +289,25 @@ module.exports = () => {
 
       const result = await Incoming.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
       if (!result) return res.status(404).send("Waybill not found.");
-      console.log(`[stockinmolino-routes/incoming.js] Incoming document updated (ID: ${result._id}).`); // <<< Debug Log
+      console.log(`[stockinmolino-routes/incoming.js] Incoming document updated (ID: ${result._id}).`);
+      result.items.forEach((item, index) => {
+          console.log(`[stockinmolino-routes/incoming.js]   Item ${index}: productName: "${item.productName}", productId: ${item.productId}, conversionFactor: ${item.conversionFactor}`);
+      });
+
+      // <<< HUGSEESTRADE INTEGRATION: Trigger Webhook after edit save >>>
+      // Always call webhook when an incoming document is saved. HugseesTrade handles filtering.
+      try {
+        await fetch('http://localhost:5000/api/webhooks/incoming-update', { // Adjust URL for deployment
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ incomingId: result._id, secret: process.env.WEBHOOK_SECRET })
+        });
+        console.log(`[stockinmolino-routes/incoming.js] Webhook sent for edit of Incoming ID: ${result._id}`);
+      } catch (webhookError) {
+        console.error(`[stockinmolino-routes/incoming.js] ERROR sending webhook for edit of Incoming ID ${result._id}:`, webhookError);
+      }
+      // >>> END HUGSEESTRADE INTEGRATION <<<
+
       res.redirect("/waybills");
     } catch (err) {
       console.error("Error updating waybill:", err);
